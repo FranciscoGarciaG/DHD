@@ -113,21 +113,6 @@
 
         let network = null;
 
-        // Función interactiva para borrar palabras haciendo clic en ellas
-        window.removerPalabra = function (palabra) {
-            const textarea = document.getElementById('wordInput');
-            let words = textarea.value.split(',').map(w => w.trim());
-            // Filtra la palabra que el usuario seleccionó
-            words = words.filter(w => w.toLowerCase() !== palabra.toLowerCase());
-            textarea.value = words.join(', ');
-
-            // Efecto visual en el botón
-            const btn = document.getElementById('generateBtn');
-            const originalText = btn.innerText;
-            btn.innerText = `Borrando "${palabra}"...`;
-            setTimeout(() => btn.innerText = originalText, 1000);
-        }
-
         async function procesarPalabras() {
             const rawInput = document.getElementById('wordInput').value.trim();
             const statusDiv = document.getElementById('statusMessage');
@@ -150,40 +135,20 @@
             }
 
             btn.disabled = true;
-            btn.innerHTML = `<span class="animate-pulse">Evaluando con IA...</span>`;
+            btn.innerHTML = `<span class="animate-pulse">Analizando con Groq AI...</span>`;
 
             try {
                 const aiResponse = await consultarIA(words);
 
-                // Generar HTML interactivo para las palabras rechazadas
-                let rechazadosHTML = '';
-                if (aiResponse.invalidas && aiResponse.invalidas.length > 0) {
-                    const chips = aiResponse.invalidas.map(w =>
-                        `<span onclick="removerPalabra('${w}')" class="cursor-pointer hover:bg-rose-600 inline-block bg-rose-500 text-white text-xs px-2 py-1 rounded-full mr-2 mb-2 transition shadow-sm" title="Haz clic para quitarla del cuadro de texto">❌ ${w}</span>`
-                    ).join('');
-
-                    rechazadosHTML = `
-                        <div class="mt-3 border-t border-rose-500/30 pt-3">
-                            <p class="text-rose-300 text-xs mb-2"><strong>Conceptos no relacionados (Haz clic en ellos para borrarlos):</strong></p>
-                            <div>${chips}</div>
-                            <p class="text-xs text-slate-400 mt-1">Por favor, reemplázalos por conceptos del tema y vuelve a analizar.</p>
-                        </div>`;
-                }
-
                 if (aiResponse.validas && aiResponse.validas.length >= 10) {
-                    let msg = `<strong>¡Análisis Completado!</strong> Se mapearon ${aiResponse.validas.length} conceptos.`;
-                    if (rechazadosHTML) msg += rechazadosHTML;
-
-                    mostrarMensaje(msg, "success");
+                    mostrarMensaje(`<strong>¡Análisis Completado!</strong> Se mapearon ${aiResponse.validas.length} conceptos.`, "success");
                     emptyState.classList.add('hidden');
                     legend.classList.remove('hidden');
                     dibujarMapaEstilizado(aiResponse.validas, aiResponse.enlaces);
                 } else {
+                    let rechazados = aiResponse.invalidas ? aiResponse.invalidas.join(', ') : 'Ninguno reportado';
                     let validadasCount = aiResponse.validas ? aiResponse.validas.length : 0;
-                    let msg = `<strong>Faltan conceptos válidos (${validadasCount}/10).</strong>`;
-                    if (rechazadosHTML) msg += rechazadosHTML;
-
-                    mostrarMensaje(msg, "error");
+                    mostrarMensaje(`<strong>Faltan conceptos válidos (${validadasCount}/10).</strong><br>Rechazados por irrelevancia: <span class="text-rose-400">${rechazados}</span>`, "error");
                 }
             } catch (error) {
                 mostrarMensaje("Error de conexión: " + error.message, "error");
@@ -254,14 +219,8 @@ Devuelve SOLO un JSON válido, sin formato markdown de código ni texto extra:
             const div = document.getElementById('statusMessage');
             div.innerHTML = html;
             div.classList.remove("hidden");
-            // Estilos dinámicos dependiendo de si es éxito o error, pero manteniendo el panel de rechazados visible
-            if (tipo === "error") {
-                div.classList.remove("bg-emerald-500/10", "text-emerald-400", "border-emerald-500/30");
-                div.classList.add("block", "bg-rose-500/10", "text-rose-400", "border-rose-500/30");
-            } else if (tipo === "success") {
-                div.classList.remove("bg-rose-500/10", "text-rose-400", "border-rose-500/30");
-                div.classList.add("block", "bg-emerald-500/10", "text-emerald-400", "border-emerald-500/30");
-            }
+            if (tipo === "error") div.classList.add("block", "bg-rose-500/10", "text-rose-400", "border-rose-500/30");
+            else if (tipo === "success") div.classList.add("block", "bg-emerald-500/10", "text-emerald-400", "border-emerald-500/30");
         }
 
         function dibujarMapaEstilizado(nodosValidos, enlaces) {
