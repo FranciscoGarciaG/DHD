@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Conceptual: IE Directiva - Equipo 6</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        #mynetwork {
+            width: 100%;
+            height: 650px;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            background-color: #1e293b;
+            box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+
+<body class="p-6 md:p-12">
+
+    <div class="max-w-6xl mx-auto bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
+        <div class="text-center mb-8">
+            <h1
+                class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
+                Análisis Directivo: Inteligencia Emocional
+            </h1>
+            <p class="text-slate-400 text-lg">Actividad Didáctica - Equipo 6</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-slate-700/50 p-5 rounded-xl border border-slate-600">
+                    <label class="block text-slate-200 font-semibold mb-2">Conceptos del Grupo:</label>
+                    <p class="text-xs text-slate-400 mb-3">Ingresa palabras clave basadas en las escenas analizadas
+                        (min. 10).</p>
+                    <textarea id="wordInput" rows="6"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                        placeholder="Ej: Autoconciencia, Empatía, Secuestro emocional, Riley, Chris Gardner..."></textarea>
+                </div>
+
+                <button id="generateBtn" onclick="procesarPalabras()"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transform transition hover:-translate-y-0.5">
+                    Analizar y Generar Mapa
+                </button>
+
+                <div id="statusMessage" class="hidden p-4 rounded-xl text-sm border"></div>
+
+                <div id="legend" class="hidden bg-slate-700/30 p-4 rounded-xl border border-slate-600">
+                    <h3 class="text-slate-300 font-semibold mb-2 text-sm uppercase tracking-wider">Leyenda</h3>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li class="flex items-center"><span
+                                class="w-3 h-3 rounded-full bg-blue-500 mr-2 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+                            IE Personal</li>
+                        <li class="flex items-center"><span
+                                class="w-3 h-3 rounded-full bg-emerald-500 mr-2 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                            IE Interpersonal</li>
+                        <li class="flex items-center"><span
+                                class="w-3 h-3 rounded-full bg-rose-500 mr-2 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
+                            Consecuencias / Conflictos</li>
+                        <li class="flex items-center"><span
+                                class="w-3 h-3 rounded-full bg-amber-500 mr-2 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+                            Contexto (Películas)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 relative">
+                <div id="mynetwork"></div>
+                <div id="emptyState"
+                    class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 pointer-events-none">
+                    <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <p class="text-lg">El mapa se generará aquí</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // PON TU CLAVE DE API DE GROQ AQUÍ ABAJO
+        // ==========================================
+        const API_KEY = "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";
+
+        let network = null;
+
+        async function procesarPalabras() {
+            const rawInput = document.getElementById('wordInput').value.trim();
+            const statusDiv = document.getElementById('statusMessage');
+            const btn = document.getElementById('generateBtn');
+            const emptyState = document.getElementById('emptyState');
+            const legend = document.getElementById('legend');
+
+            statusDiv.className = "hidden p-4 rounded-xl text-sm border mt-4";
+            statusDiv.innerHTML = "";
+
+            if (API_KEY === "PEGA_TU_API_KEY_DE_GROQ_AQUÍ" || !API_KEY) {
+                mostrarMensaje("Configura tu API Key de Groq en el código fuente primero.", "error");
+                return;
+            }
+
+            const words = rawInput.split(',').map(w => w.trim()).filter(w => w.length > 0);
+            if (words.length < 10) {
+                mostrarMensaje(`Has introducido ${words.length} conceptos. Faltan ${10 - words.length} para el mínimo.`, "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-pulse">Analizando con Groq AI...</span>`;
+
+            try {
+                const aiResponse = await consultarIA(words);
+
+                if (aiResponse.validas && aiResponse.validas.length >= 10) {
+                    mostrarMensaje(`<strong>¡Análisis Completado!</strong> Se mapearon ${aiResponse.validas.length} conceptos.`, "success");
+                    emptyState.classList.add('hidden');
+                    legend.classList.remove('hidden');
+                    dibujarMapaEstilizado(aiResponse.validas, aiResponse.enlaces);
+                } else {
+                    let rechazados = aiResponse.invalidas ? aiResponse.invalidas.join(', ') : 'Ninguno reportado';
+                    let validadasCount = aiResponse.validas ? aiResponse.validas.length : 0;
+                    mostrarMensaje(`<strong>Faltan conceptos válidos (${validadasCount}/10).</strong><br>Rechazados por irrelevancia: <span class="text-rose-400">${rechazados}</span>`, "error");
+                }
+            } catch (error) {
+                mostrarMensaje("Error de conexión: " + error.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Analizar y Generar Mapa";
+            }
+        }
+
+        async function consultarIA(words) {
+            const url = "https://api.groq.com/openai/v1/chat/completions";
+
+            const promptContext = `
+Eres un estricto evaluador académico y calificador. Tu tarea es filtrar y clasificar conceptos para un mapa conceptual sobre la "Clasificación de la Inteligencia Emocional y su relación con el éxito directivo".
+
+CONTEXTO OBLIGATORIO Y EXCLUSIVO:
+Solo debes aceptar conceptos que pertenezcan estrictamente a estos 3 pilares del documento:
+1. Teoría de la IE: Modelos de Salovey/Mayer y Goleman, Inteligencia Intrapersonal/Personal (Autoconciencia, Autogestión, Motivación interna), Inteligencia Interpersonal (Conciencia Social, Empatía, Gestión de Relaciones), Secuestro de la amígdala, Regulación emocional, Liderazgo resonante, Burnout, Rotación, Toma de decisiones, Maquiavelismo (lado oscuro).
+2. Análisis "Intensa-Mente": Riley, Mudanza, Falta de autoconciencia, Impulso ciego, Aislamiento.
+3. Análisis "En Busca de la Felicidad": Chris Gardner, Entrevista, Autoconfianza, Contagio emocional, Empatía cognitiva.
+4. Análisis "La Red Social": Mark Zuckerberg, Eduardo Saverin, Facebook, Abogados, Arrogancia defensiva, Sarcasmo, Falta de empatía.
+
+REGLA DE RECHAZO ABSOLUTO (CERO TOLERANCIA):
+Rechaza automáticamente y clasifica como 'invalidas' cualquier palabra común, objeto cotidiano, término genérico, verbo suelto o palabra que no aporte valor teórico directo al tema de la IE o a las 3 películas mencionadas. EJEMPLOS QUE DEBES RECHAZAR: lápiz, laptop, carro, perro, casa, mesa, feliz, triste, correr, comer, agua.
+
+Lista del usuario a evaluar: [${words.join(', ')}]
+
+Instrucciones:
+1. Filtra las palabras con extrema rigurosidad separándolas en 'validas' e 'invalidas'. Si dudas de una palabra, recházala.
+2. A cada palabra válida, asígnale una categoría exacta: "personal", "interpersonal", "consecuencia" o "contexto".
+3. CONEXIONES OBLIGATORIAS: Es OBLIGATORIO que TODAS las palabras válidas estén conectadas al menos a otra palabra mediante 'enlaces' lógicos. Ningún nodo debe quedar flotando.
+4. COINCIDENCIA EXACTA: Los valores "from" y "to" en tus enlaces DEBEN ser exactamente idénticos al "id" de las palabras válidas.
+
+Devuelve SOLO un JSON válido, sin formato markdown de código ni texto extra:
+{
+  "validas": [ {"id": "palabra", "category": "categoria"} ],
+  "invalidas": ["palabra_rechazada_por_ser_comun_o_irrelevante"],
+  "enlaces": [ {"from": "palabra1", "to": "palabra2", "label": "verbo conector"} ]
+}
+`;
+            const payload = {
+                model: "llama-3.1-8b-instant",
+                messages: [
+                    { role: "system", content: "You output pure JSON only." },
+                    { role: "user", content: promptContext }
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.1
+            };
+
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${API_KEY}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("Error en el servidor de la IA: " + response.status);
+
+            const data = await response.json();
+            const jsonString = data.choices[0].message.content;
+            return JSON.parse(jsonString);
+        }
+
+        function mostrarMensaje(html, tipo) {
+            const div = document.getElementById('statusMessage');
+            div.innerHTML = html;
+            div.classList.remove("hidden");
+            if (tipo === "error") div.classList.add("block", "bg-rose-500/10", "text-rose-400", "border-rose-500/30");
+            else if (tipo === "success") div.classList.add("block", "bg-emerald-500/10", "text-emerald-400", "border-emerald-500/30");
+        }
+
+        function dibujarMapaEstilizado(nodosValidos, enlaces) {
+            const container = document.getElementById('mynetwork');
+
+            const colorMap = {
+                "personal": { background: '#2563eb', border: '#1d4ed8', shadow: '#3b82f6' },
+                "interpersonal": { background: '#059669', border: '#047857', shadow: '#10b981' },
+                "consecuencia": { background: '#e11d48', border: '#be123c', shadow: '#f43f5e' },
+                "contexto": { background: '#d97706', border: '#b45309', shadow: '#f59e0b' }
+            };
+
+            const nodesArray = nodosValidos.map((nodo) => {
+                const style = colorMap[nodo.category] || colorMap["contexto"];
+                return {
+                    id: nodo.id,
+                    label: nodo.id,
+                    shape: 'box',
+                    color: { background: style.background, border: style.border, highlight: { background: style.border, border: '#fff' } },
+                    font: { color: '#ffffff', face: 'Segoe UI', size: 16, bold: true },
+                    borderWidth: 2,
+                    shadow: { enabled: true, color: style.shadow, size: 15, x: 0, y: 0 },
+                    shapeProperties: { borderRadius: 8 }
+                };
+            });
+
+            const validIds = nodosValidos.map(n => n.id);
+            const edgesArray = (enlaces || []).filter(link => validIds.includes(link.from) && validIds.includes(link.to)).map(link => {
+                return {
+                    from: link.from,
+                    to: link.to,
+                    label: link.label,
+                    arrows: 'to',
+                    color: { color: '#64748b', highlight: '#94a3b8' },
+                    font: { align: 'middle', color: '#94a3b8', strokeWidth: 0, size: 12, face: 'Segoe UI' },
+                    width: 2,
+                    smooth: { type: 'curvedCW', roundness: 0.2 }
+                };
+            });
+
+            const data = { nodes: new vis.DataSet(nodesArray), edges: new vis.DataSet(edgesArray) };
+
+            const options = {
+                physics: {
+                    barnesHut: { gravitationalConstant: -4000, centralGravity: 0.3, springLength: 150, springConstant: 0.04 },
+                    stabilization: { iterations: 150 }
+                },
+                interaction: { hover: true, tooltipDelay: 200, zoomView: true }
+            };
+
+            if (network) network.destroy();
+            network = new vis.Network(container, data, options);
+        }
+    </script>
+</body>
+
+</html>
